@@ -5,12 +5,6 @@ import matplotlib.pyplot as plt
 queue = []  # Use a list to manage the queue of orders
 queueLimit = 5
 
-chanceToGetOrder = {
-    0: 0.3,  # 9:00 - 11:00
-    1: 0.5,  # 11:00 - 15:00
-    2: 0.7   # 15:00 - 18:00
-}
-
 def SimulateOneDay():
     dayLog = []  # Initialize a new log for each day
     currentTime = 9 * 60  # Start at 9:00 AM
@@ -136,6 +130,7 @@ def main():
         }
 
     df = pd.DataFrame(data)
+    print(df.to_string())
 
     # Plotting
     plt.figure(figsize=(14, 8))
