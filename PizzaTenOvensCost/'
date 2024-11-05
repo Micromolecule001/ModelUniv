@@ -1,0 +1,175 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+ovenList = [] 
+queue = []
+queueLimit = 10  # Define queue limit
+
+class Oven:
+    def __init__(self, state, number):
+        self.state = state
+        self.number = number
+        self.stats = {
+
+        }
+         
+    def createOven(state, number):
+        newOven = Oven(state, number)
+        ovenList.append(newOven)
+        Oven.printOven(newOven)
+
+    def printOven(self):
+        print(self.number, self.state, self.stats)
+
+    def updateStats(working_time, chill_time, orders_count, money_cost):
+        """Update the statistics of ecah oven."""
+
+    def getStats(self):
+        """Return and reset the hourly stats for the oven."""
+
+i = 1
+while i <= 10:
+    Oven.createOven(i, False)
+    i += 1
+
+all_statistics = []
+
+def simulateOneDay():
+    daily_log = []
+    current_time = 9 * 60  # Start at 9:00 AM
+
+    while current_time < 18 * 60:  # Until 18:00 (6:00 PM)
+        current_time += 5  # Step forward in 5-minute intervals
+        
+        Oven.updateStats()
+        probability = getOrderProbability(current_time)
+        order = generatePizzaOrder(probability)
+
+        if order:
+            checkQueue(current_time)
+            if len(queue) < queueLimit:
+                queue.append({"time": current_time, **order})
+                oven = assignOrderToOven(order)  # Assign order to an available oven
+                daily_log.append(order)
+            else:
+                daily_log.append({"rejected": True, "reason": "Queue full", "price": order["price"]})
+
+        # Gather hourly statistics from each oven
+        if current_time % 60 == 0:  # At the end of each hour
+            hour_log = gatherHourlyStats(current_time)
+            daily_log.append(hour_log)  # Append hourly statistics to daily log
+
+    # Store daily statistics
+    all_statistics.append(daily_log)
+    return daily_log
+
+def getOrderProbability(current_time):
+    """Get the probability based on the time of day."""
+    if 9 * 60 <= current_time <= 11 * 60:
+        return 0.3
+    elif 11 * 60 < current_time <= 15 * 60:
+        return 0.5
+    elif 15 * 60 < current_time <= 18 * 60:
+        return 0.7
+    else:
+        return 0.0  # Outside working hours
+
+def checkQueue(current_time):
+    global queue
+    completed_orders = []
+
+    # Check each order in the queue if it's complete
+    for order in queue:
+        end_time = order["time"] + order["preparation_time"]
+        if current_time >= end_time:
+            completed_orders.append(order)
+
+    for order in completed_orders:
+        queue.remove(order)
+
+def generatePizzaOrder(probability):
+    if np.random.random() < probability:
+        is_custom = np.random.binomial(1, 0.5) == 1
+
+        if is_custom:
+            preparation_time = 15
+            price = np.random.uniform(15, 20)
+        else:
+            preparation_time = 10
+            price = np.random.uniform(10, 15)
+        
+        return {
+            "rejected": False,
+            "is_custom": is_custom,
+            "preparation_time": preparation_time,
+            "price": price
+        }
+    return None
+
+def assignOrderToOven(order):
+    """Assign an order to an oven (choose the first available one)."""
+    for oven in ovens:
+        if oven.state:  # If the oven is available
+            oven.updateStats(
+                working_time=order["preparation_time"],
+                chill_time=0,
+                orders_count=1,
+                money_cost=order["price"]
+            )
+            oven.state = False  # Set oven to busy
+            print("Choosing oven number: ", oven.number)
+            return oven
+    return None  # If all ovens are busy
+
+def gatherHourlyStats(current_time):
+    """Collect hourly statistics from each oven and reset oven stats."""
+    hourly_stats = {}
+    for oven in ovens:
+        stats = oven.getStats()
+        hourly_stats[f"Oven {oven.number}"] = stats
+        oven.state = True  # Reset oven to available
+    return {f"Hour_{current_time // 60}": hourly_stats}
+
+def plotStatistics():
+    # Convert `all_statistics` into a DataFrame for analysis
+    stats_data = []
+
+    for day_index, day_log in enumerate(all_statistics):
+        for hour_log in day_log:
+            if isinstance(hour_log, dict):  # Check if it's hourly stats
+                for hour, ovens_stats in hour_log.items():
+                    if isinstance(ovens_stats, dict):  # Ensure `ovens_stats` is a dictionary
+                        for oven, stats in ovens_stats.items():
+                            stats_data.append({
+                                "Day": day_index + 1,
+                                "Hour": hour,
+                                "Oven": oven,
+                                "Working Time": stats["workingTime"],
+                                "Chill Time": stats["chillTime"],
+                                "Orders Count": stats["ordersCount"],
+                                "Money Earned": stats["moneyCost"]
+                            })
+                    else:
+                        print(f"Unexpected type for ovens_stats: {type(ovens_stats)}")  # Debugging line
+
+    # Create a DataFrame
+    df = pd.DataFrame(stats_data)
+
+    # Plotting accumulated statistics over the 31 days
+    df.groupby("Day")[["Working Time", "Chill Time", "Orders Count", "Money Earned"]].sum().plot(kind="line")
+    plt.title("Oven Statistics Over 31 Days")
+    plt.xlabel("Day")
+    plt.ylabel("Cumulative Metrics")
+    plt.show()
+
+# Main simulation loop
+def main():
+    for day in range(31):
+        print(f"Simulating Day {day+1}")
+        simulateOneDay()
+
+    plotStatistics()
+
+main()
+
