@@ -19,30 +19,67 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Variables 
+ovenList = [] 
+allStats = []
+queue = []
+queueLimit = 10 # Define queue limit
+
+class Order:
+    __idCounter = 1
+    __orderList = {}
+
+    def __init__(self, doneTime, rejected, type, price):
+        self.id = Order.__idCounter
+        Order.__idCounter += 1
+        self.rejected = rejected
+        self.type = type
+        self.price = price
+        self.doneTime = doneTime 
+        
+    def createOrder(time, rejected, type, price, currentTime):
+        newOrder = Order(time, rejected, type, price)
+        print(f"Order{newOrder.id}:\n",
+              f"    Start: {currentTime} \n",
+              f"    End: {time} \n",
+              f"    IsRejected: {rejected} \n",
+              f"    PizzaType: {type} \n",
+              f"    Price: {price} \n",
+        )
+        Order.__orderList[newOrder.id] = newOrder
+        return newOrder
+
+    def getOrderByNumber(orderNumber):
+        return Order.__orderList[orderNumber] 
+
+
 class Oven:
     def __init__(self, state, number):
         self.number = number
         self.state = state
-        self.activeOrder = {}
-        self.stats = {
-            9: {
-                "ordersCount": 0,
-                "workingTime": 0,
-                "chillingTime": 0,
-                "moneySaved": 0,
-                "moneySpent": 0,
-            }
-        }
+        self.activeOrder = None
+        self.stats = {}
          
+    def printOven(self):
+        print(self.number, self.state, self.stats)
+
     def createOven(state, number):
         newOven = Oven(state, number)
         ovenList.append(newOven)
 
-    def printOven(self):
-        print(self.number, self.state, self.stats)
+    def deleteDone(self, currentTime):
+        # Only delete if there's an active order and it's done
+        if self.activeOrder:
+            order = Order.getOrderByNumber(self.activeOrder)
+            if currentTime >= order.doneTime:
+                self.activeOrder = None  # Delete the order by setting it to None
+                self.toggleState()
+
+    def assignOrder(self, orderNumber):
+        self.activeOrder = orderNumber
 
     def updateStats(hour):
-        """Update the statistics of ecah oven."""
+        # Update the statistics of ecah oven.
 
         for oven in ovenList:
             if hour not in oven.stats:
@@ -55,7 +92,7 @@ class Oven:
                     "moneySpent": 0,
                 }
 
-            if oven.state == False:
+            if oven.state == True:
                 oven.stats[hour]['chillingTime'] += 5
                 oven.stats[hour]['moneySaved'] += 1.666666667
             else: 
@@ -63,136 +100,162 @@ class Oven:
                 oven.stats[hour]['moneySpent'] += 1.666666667
 
     def getStats(self):
-        """Return and reset the hourly stats for the oven."""
-        statistic = self.stats
-        start = 9
-        end = 18
-
-        while start < end:
-            hour = statistic[start]
-            print(f"Statistic of {self.number} in {start}:00",
-                  f"\nWorking Time: {hour['workingTime']}", 
-                  f"\nMoney Spent: {hour['moneySpent']}",
-                  f"\nOrders Count: {hour['ordersCount']}",
-                  f"\nMoney Saved: {math.floor(hour['moneySaved'])}",
-            )
-            start += 1
-
-        print("\n")
+        # function to get dict with all data 
+        statistics = []
+        for hour in range(9, 18):
+            if hour in self.stats:  # Убедитесь, что статистика для этого часа существует
+                stat = self.stats[hour]
+                statistics.append({
+                    "Id": self.number,
+                    "Hour": f"{hour}:00",
+                    "wTime": stat["workingTime"],
+                    "Orders": stat["ordersCount"],
+                    "Spent": math.floor(stat["moneySpent"]),
+                    "Saved": math.floor(stat["moneySaved"]),
+                })
+        return statistics
 
     def toggleState(self):
-        """Toggle the state of the oven between available (True) and busy (False)."""
+        # Toggle the state of the oven between available (True) and busy (False).
         self.state = not self.state  # Toggle state
         print(f"Oven {self.number} is now {'available' if self.state else 'busy'}.")
 
-    def addOrderCount(self):
-        """Increment the order count."""
-        self.stats["ordersCount"] += 1
-        print(f"Order count for oven {self.number} is now {self.stats['orderCount']}.")
-        
+    def addOrderCount(self, hour):
+        # Increment the order count.
+        if hour not in self.stats:
+            self.stats[hour] = {
+            "ordersCount": 0,
+            "workingTime": 0,
+            "chillingTime": 0,
+            "moneySaved": 0,
+            "moneySpent": 0,
+        }
 
-ovenList = [] 
-all_statistics = []
-queue = []
-queueLimit = 10  # Define queue limit
+        self.stats[hour]["ordersCount"] += 1
+        print(f"Order count for oven {self.number} is now {self.stats[hour]["ordersCount"]}.")
 
-# generate 10 ovens
 i = 1
 while i <= 10:
     Oven.createOven(True, i)
     i += 1
 
-def simulateOneDay():
+def main():
     daily_log = []
-    current_time = 9 * 60  # Start at 9:00 AM
+    currentTime = 9 * 60  # Start at 9:00 AM
+    rejectedCounter = 0
 
-    while current_time < 18 * 60:  # Until 18:00 (6:00 PM)
-        current_time += 5  # Step forward in 5-minute intervals
-        current_hour = math.floor(current_time / 60)
-        
-        probability = getOrderProbability(current_time)
-        order = generatePizzaOrder(probability)
+    while currentTime < 18 * 60:  # Until 18:00 (6:00 PM)
+        currentHour = math.floor(currentTime / 60)
+        probability = getOrderProbability(currentTime)
+        order = generatePizzaOrder(probability, currentTime)
 
         if order:
-            checkQueue(current_time)
+            for oven in ovenList:
+                oven.deleteDone(currentTime)
+
             if len(queue) <= queueLimit:
-                queue.append({"time": current_time, **order})
-                oven = assignOrderToOven(order, current_hour)  # Assign order to an available oven
+                oven = assignOrderToOven(order, currentHour)  # Assign order to an available oven
                 daily_log.append(order)
             else:
+                rejectedCounter += 1
                 daily_log.append({"rejected": True, "reason": "Queue full", "price": order["price"]})
 
-        Oven.updateStats(current_hour)
+        currentTime += 5                # Step forward in 5-minute intervals
+        Oven.updateStats(currentHour)   # Update stats for each oven
 
     for oven in ovenList:
-        # oven.getStats()
-        pass
+        stats = oven.getStats() # get stats from one oven 
+        allStats.extend(stats)  # place stats to allStats[]
 
+    print(rejectedCounter)
+        
 
-    # Store daily statistics
-    all_statistics.append(daily_log)
-    return daily_log
-
-def getOrderProbability(current_time):
+def getOrderProbability(currentTime):
     # Get the probability based on the time of day.
 
-    if 9 * 60 <= current_time <= 11 * 60:
+    if 9 * 60 <= currentTime <= 11 * 60:
         return 0.3
-    elif 11 * 60 < current_time <= 15 * 60:
+    elif 11 * 60 < currentTime <= 15 * 60:
         return 0.5
-    elif 15 * 60 < current_time <= 18 * 60:
+    elif 15 * 60 < currentTime <= 18 * 60:
         return 0.7
     else:
         return 0.0  # Outside working hours
 
-def checkQueue(current_time):
-    global queue
-    completed_orders = []
-
-    # Check each order in the queue if it's complete
-    for order in queue:
-        end_time = order["time"] + order["preparation_time"]
-        if current_time >= end_time:
-            completed_orders.append(order)
-
-    for order in completed_orders:
-        queue.remove(order)
-
-def generatePizzaOrder(probability):
+def generatePizzaOrder(probability, currentTime):
     if np.random.random() < probability:
-        is_custom = np.random.binomial(1, 0.5) == 1
+        isCustom = np.random.binomial(1, 0.5) == 1
 
-        if is_custom:
-            preparation_time = 15
+        if isCustom:                             # if individual 
+            preparationTime = 15
             price = np.random.uniform(15, 30)
         else:
-            preparation_time = 10
+            preparationTime = 10
             price = np.random.uniform(10, 15)
-        
-        return {
-            "rejected": False,
-            "is_custom": is_custom,
-            "preparation_time": preparation_time,
-            "price": price
-        }
+
+        time = preparationTime + currentTime
+
+        return Order.createOrder(time, False, isCustom, price, currentTime)
 
     return None
 
 def assignOrderToOven(order, hour):
-    # Assign an order to an oven (choose the first available one).
     for oven in ovenList:
-        if oven.state:  # If the oven is available
-            oven.toggleState()
-            oven.addOrderCount()
+        if oven.state:                  # If the oven is available
+            oven.toggleState()          # Toggle oven state 
+            oven.addOrderCount(hour)    # Add order in current hour 
+            oven.assignOrder(order.id)  # Directly assign the created order
+            print(f"Order{order.id} is going to oven{oven.number}")
             return oven
 
-    return "all ovens are busy"  # If all ovens are busy
-
-# Main simulation loop
-def main():
-    for day in range(1):
-        print(f"Simulating Day {day+1}")
-        simulateOneDay()
+    return "all ovens are busy"         # If all ovens are busy
 
 main()
 
+df = pd.DataFrame(allStats)
+pd.set_option("display.max_rows", 1000)
+df.set_index(["Hour", "Id"], inplace=True)
+print(df)
+
+# 1. Line Plot of Orders per Time for each Oven
+plt.figure(figsize=(12, 6))
+for oven_id in df.index.get_level_values('Id').unique():  # Access 'Id' from the index
+    oven_data = df[df.index.get_level_values('Id') == oven_id]
+    plt.plot(oven_data.index.get_level_values('Hour'), oven_data['Orders'], label=f'Oven {oven_id}')
+plt.xlabel("Time")
+plt.ylabel("Orders")
+plt.title("Orders Processed by Each Oven Over Time")
+plt.legend(title="Oven ID")
+plt.show()
+
+# 2. Bar Plot of Spent Cost by Time for each Oven
+plt.figure(figsize=(12, 6))
+for oven_id in df.index.get_level_values('Id').unique():
+    oven_data = df[df.index.get_level_values('Id') == oven_id]
+    plt.bar(oven_data.index.get_level_values('Hour'), oven_data['Spent'], label=f'Oven {oven_id}', alpha=0.6)
+plt.xlabel("Time")
+plt.ylabel("Spent Cost")
+plt.title("Cost of Operating Each Oven Over Time")
+plt.legend(title="Oven ID")
+plt.show()
+
+# 3. Stacked Bar Plot for Savings
+fig, ax = plt.subplots(figsize=(12, 6))
+for i, oven_id in enumerate(df.index.get_level_values('Id').unique(), start=1):
+    oven_data = df[df.index.get_level_values('Id') == oven_id]
+    ax.bar(oven_data.index.get_level_values('Hour'), oven_data['Saved'], bottom=oven_data['Spent'], label=f'Oven {oven_id}')
+plt.xlabel("Time")
+plt.ylabel("Saved Amount")
+plt.title("Savings and Cost for Each Oven Over Time")
+plt.legend(title="Oven ID")
+plt.show()
+
+# 4. Heatmap of Orders by Time and Oven
+# Pivoting data for heatmap visualization
+heatmap_data = df.pivot("Id", "Hour", "Orders")
+plt.figure(figsize=(12, 8))
+sns.heatmap(heatmap_data, annot=True, fmt=".0f", cmap="YlGnBu")
+plt.xlabel("Hour")
+plt.ylabel("Oven ID")
+plt.title("Heatmap of Orders per Oven by Hour")
+plt.show()
