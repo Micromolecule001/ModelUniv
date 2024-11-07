@@ -216,46 +216,27 @@ df = pd.DataFrame(allStats)
 pd.set_option("display.max_rows", 1000)
 df.set_index(["Hour", "Id"], inplace=True)
 print(df)
+print(df.index)
+print(df.index.get_level_values("Id"))
+print(df.index.get_level_values("Id").unique())
+print(df.index.get_level_values('Id'))
 
-# 1. Line Plot of Orders per Time for each Oven
-plt.figure(figsize=(12, 6))
-for oven_id in df.index.get_level_values('Id').unique():  # Access 'Id' from the index
-    oven_data = df[df.index.get_level_values('Id') == oven_id]
-    plt.plot(oven_data.index.get_level_values('Hour'), oven_data['Orders'], label=f'Oven {oven_id}')
-plt.xlabel("Time")
-plt.ylabel("Orders")
-plt.title("Orders Processed by Each Oven Over Time")
-plt.legend(title="Oven ID")
-plt.show()
-
-# 2. Bar Plot of Spent Cost by Time for each Oven
+# 1st plot working time
 plt.figure(figsize=(12, 6))
 for oven_id in df.index.get_level_values('Id').unique():
     oven_data = df[df.index.get_level_values('Id') == oven_id]
-    plt.bar(oven_data.index.get_level_values('Hour'), oven_data['Spent'], label=f'Oven {oven_id}', alpha=0.6)
-plt.xlabel("Time")
-plt.ylabel("Spent Cost")
-plt.title("Cost of Operating Each Oven Over Time")
-plt.legend(title="Oven ID")
+    plt.bar(oven_data.index.get_level_values('Hour'), oven_data['Spent'], label=f'Oven {oven_id}', alpha=0.4)
+plt.xlabel("label of x horizontal")
+plt.ylabel("label of y vertical")
+plt.legend("Oven working itme ")
 plt.show()
 
-# 3. Stacked Bar Plot for Savings
-fig, ax = plt.subplots(figsize=(12, 6))
-for i, oven_id in enumerate(df.index.get_level_values('Id').unique(), start=1):
+# 2st plot orders count
+plt.figure(figsize=(12, 6))
+for oven_id in df.index.get_level_values('Id').unique():
     oven_data = df[df.index.get_level_values('Id') == oven_id]
-    ax.bar(oven_data.index.get_level_values('Hour'), oven_data['Saved'], bottom=oven_data['Spent'], label=f'Oven {oven_id}')
-plt.xlabel("Time")
-plt.ylabel("Saved Amount")
-plt.title("Savings and Cost for Each Oven Over Time")
-plt.legend(title="Oven ID")
-plt.show()
-
-# 4. Heatmap of Orders by Time and Oven
-# Pivoting data for heatmap visualization
-heatmap_data = df.pivot("Id", "Hour", "Orders")
-plt.figure(figsize=(12, 8))
-sns.heatmap(heatmap_data, annot=True, fmt=".0f", cmap="YlGnBu")
-plt.xlabel("Hour")
-plt.ylabel("Oven ID")
-plt.title("Heatmap of Orders per Oven by Hour")
+    plt.bar(oven_data.index.get_level_values('Hour'), oven_data['Orders'], label=f'Oven {oven_id}', alpha=0.4)
+plt.xlabel("label of x horizontal")
+plt.ylabel("label of y vertical")
+plt.legend("Oven working itme ")
 plt.show()
