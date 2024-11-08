@@ -15,7 +15,7 @@ def SimulateOneDay():
     dayLog = []  # Initialize a new log for each day
     currentTime = 9 * 60  # Start at 9:00 AM
 
-    while currentTime < 18 * 60:  # Until 18:00 (6:00 PM)
+    while currentTime <= 18 * 60 :  # Until 18:00 (6:00 PM)
         currentTime += 5  # Step forward in 5-minute intervals
         
         # Determine the probability for order generation based on time of day
@@ -38,6 +38,7 @@ def SimulateOneDay():
                 queue.append({"time": currentTime, **order})  # Add the order with its time
                 dayLog.append(order)  # Log the order
             else:
+                print('currentTime, queue: ', currentTime, queue)
                 # Log that order is rejected due to full queue
                 dayLog.append({"rejected": True, "reason": "Queue full", "price": order["price"]})
 
@@ -65,7 +66,7 @@ def checkQueue(currentTime):
     global queue  # Access the global queue
     completed_orders = []
 
-    if currentTime >= 1075: 
+    if currentTime >= 1080: 
         queue = []
 
     # Iterate over the queue to check if each order is ready
@@ -76,11 +77,7 @@ def checkQueue(currentTime):
 
     # Remove completed orders from the queue
     for order in completed_orders:
-
-#       print('\n\n Start order time: ', order["time"],
-#             '\n\n Preparation time: ', order["preparation_time"], 
-#             '\n\n Current day time: ', currentTime,
-#             '\n\n Queue before: \n', queue)
+        # print('\n\n Start order time: ', order["time"],'\n\n Preparation time: ', order["preparation_time"],'\n\n Current day time: ', currentTime,'\n\n Queue before: \n', queue)
         queue.remove(order)
 #       print('\n Queue after: ', queue)
 
