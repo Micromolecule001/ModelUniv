@@ -162,12 +162,12 @@ def main():
 
         currentTime += 5                # Step forward in 5-minute intervals
         Oven.updateStats(currentHour)   # Update stats for each oven
-
+    
     for oven in ovenList:
         stats = oven.getStats() # get stats from one oven 
         allStats.extend(stats)  # place stats to allStats[]
 
-    print(rejectedCounter)
+    print("Rejected orders count at the end of a day: ",rejectedCounter)
         
 
 def getOrderProbability(currentTime):
@@ -240,3 +240,4 @@ plt.xlabel("label of x horizontal")
 plt.ylabel("label of y vertical")
 plt.legend("Oven working itme ")
 plt.show()
+
