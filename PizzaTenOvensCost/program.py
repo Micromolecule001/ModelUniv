@@ -213,31 +213,36 @@ def assignOrderToOven(order, hour):
 main()
 
 df = pd.DataFrame(allStats)
-pd.set_option("display.max_rows", 1000)
 df.set_index(["Hour", "Id"], inplace=True)
+
+pd.set_option("display.max_rows", 1000)
 print(df)
-print(df.index)
-print(df.index.get_level_values("Id"))
-print(df.index.get_level_values("Id").unique())
-print(df.index.get_level_values('Id'))
 
-# 1st plot working time
-plt.figure(figsize=(12, 6))
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
+
 for oven_id in df.index.get_level_values('Id').unique():
     oven_data = df[df.index.get_level_values('Id') == oven_id]
-    plt.bar(oven_data.index.get_level_values('Hour'), oven_data['Spent'], label=f'Oven {oven_id}', alpha=0.4)
-plt.xlabel("label of x horizontal")
-plt.ylabel("label of y vertical")
-plt.legend("Oven working itme ")
-plt.show()
+    ax1.bar(oven_data.index.get_level_values('Hour'), oven_data['Spent'], label=f'Oven {oven_id}', alpha=0.4)
+    ax2.bar(oven_data.index.get_level_values('Hour'), oven_data['Saved'], label=f'Oven {oven_id}', alpha=0.1)
+    ax3.bar(oven_data.index.get_level_values('Hour'), oven_data['wTime'], label=f'Oven {oven_id}', alpha=0.4)
+    ax4.bar(oven_data.index.get_level_values('Hour'), oven_data['Orders'], label=f'Oven {oven_id}', alpha=0.4)
+    
+ax1.set_xlabel("Hour")
+ax1.set_ylabel("Spent Money")
+ax1.set_title("Spent Money of using ovens")
 
-# 2st plot orders count
-plt.figure(figsize=(12, 6))
-for oven_id in df.index.get_level_values('Id').unique():
-    oven_data = df[df.index.get_level_values('Id') == oven_id]
-    plt.bar(oven_data.index.get_level_values('Hour'), oven_data['Orders'], label=f'Oven {oven_id}', alpha=0.4)
-plt.xlabel("label of x horizontal")
-plt.ylabel("label of y vertical")
-plt.legend("Oven working itme ")
-plt.show()
+ax2.set_xlabel("Hour")
+ax2.set_ylabel("Saved Money")
+ax2.set_title("Saved Money of not using ovens")
 
+ax3.set_xlabel("Hour")
+ax3.set_ylabel("Working Time")
+ax3.set_title("Working Time per Hour for Each Oven")
+
+ax4.set_xlabel("Hour")
+ax4.set_ylabel("Orders Done")
+ax4.set_title("Orders Done by each oven")
+
+ax1.legend(title='Ovens', loc='upper left', bbox_to_anchor=(1, 1))
+plt.tight_layout()
+plt.show()
